@@ -1,0 +1,1276 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Escola Segura — Sistema de Ocorrências</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=Fraunces:wght@700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --gd: #0b3318; --gm: #1a5c30; --gb: #2d8a4e; --ga: #3fba6a;
+  --gl: #e8f5ee; --gp: #f4fbf6; --border: #d1e8da;
+  --amber: #f59e0b; --amber-l: #fef3c7;
+  --red: #ef4444; --red-l: #fee2e2;
+  --blue: #3b82f6; --blue-l: #eff6ff;
+  --txt: #0f1f14; --txm: #3d5a47; --txs: #7a9e87;
+  --white: #fff;
+  --r: 12px; --sw: 224px;
+  --sh-s: 0 1px 4px rgba(11,51,24,.07);
+  --sh-m: 0 4px 20px rgba(11,51,24,.12);
+  --sh-l: 0 16px 48px rgba(11,51,24,.2);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:var(--gp);color:var(--txt);min-height:100vh;}
+
+/* ── TOAST ─────────────────────── */
+#toast-wrap{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--gd);color:#fff;padding:12px 18px;border-radius:10px;font-size:13.5px;font-weight:500;
+  box-shadow:var(--sh-m);animation:toastIn .3s ease;display:flex;align-items:center;gap:10px;min-width:220px;}
+.toast.error{background:#991b1b;}
+.toast.warning{background:#92400e;}
+@keyframes toastIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+
+/* ── LOGIN ─────────────────────── */
+#login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,var(--gd) 0%,var(--gm) 60%,#1e7a40 100%);position:relative;overflow:hidden;}
+#login-screen::before{content:'';position:absolute;width:700px;height:700px;border-radius:50%;
+  background:radial-gradient(circle,rgba(63,186,106,.12) 0%,transparent 70%);top:-200px;right:-200px;}
+#login-screen::after{content:'';position:absolute;width:500px;height:500px;border-radius:50%;
+  background:radial-gradient(circle,rgba(63,186,106,.08) 0%,transparent 70%);bottom:-150px;left:-150px;}
+
+.login-card{background:rgba(255,255,255,.06);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.14);
+  border-radius:24px;padding:52px 44px;width:420px;text-align:center;position:relative;z-index:1;animation:fadeUp .6s ease both;}
+.login-logo{width:82px;height:82px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.2);
+  border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 22px;font-size:34px;}
+.login-title{font-family:'Fraunces',serif;font-size:26px;color:#fff;letter-spacing:-.5px;margin-bottom:4px;}
+.login-sub{color:rgba(255,255,255,.55);font-size:13px;margin-bottom:32px;}
+.field{background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.18);border-radius:10px;
+  display:flex;align-items:center;padding:0 16px;margin-bottom:12px;transition:border-color .2s;}
+.field:focus-within{border-color:var(--ga);}
+.field .fi{color:rgba(255,255,255,.45);margin-right:10px;font-size:16px;width:20px;text-align:center;}
+.field input{background:none;border:none;outline:none;color:#fff;width:100%;padding:14px 0;
+  font-size:14px;font-family:inherit;}
+.field input::placeholder{color:rgba(255,255,255,.35);}
+.btn-login{width:100%;padding:15px;background:var(--ga);color:#fff;border:none;border-radius:10px;
+  font-size:15px;font-weight:700;font-family:inherit;cursor:pointer;margin-top:8px;
+  transition:background .2s,transform .1s,box-shadow .2s;box-shadow:0 4px 20px rgba(63,186,106,.4);}
+.btn-login:hover{background:#36a85e;transform:translateY(-1px);}
+.btn-login:active{transform:translateY(0);}
+.login-err{color:#fca5a5;font-size:13px;margin-top:10px;min-height:20px;}
+.login-reg-link{color:rgba(255,255,255,.5);font-size:13px;margin-top:18px;cursor:pointer;
+  text-decoration:underline;transition:color .2s;}
+.login-reg-link:hover{color:#fff;}
+
+/* ── REGISTER ──────────────────── */
+#register-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(145deg,var(--gd) 0%,var(--gm) 60%,#1e7a40 100%);display:none;}
+.reg-card{background:rgba(255,255,255,.06);backdrop-filter:blur(24px);border:1px solid rgba(255,255,255,.14);
+  border-radius:24px;padding:48px 44px;width:460px;text-align:center;animation:fadeUp .5s ease both;}
+
+/* ── APP ───────────────────────── */
+#app{display:none;min-height:100vh;}
+
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:var(--sw);background:var(--gd);
+  display:flex;flex-direction:column;z-index:100;}
+.sidebar-logo{padding:22px 18px 18px;border-bottom:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;gap:10px;}
+.sidebar-logo .ico{width:38px;height:38px;background:var(--gb);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.sidebar-logo .brand{font-family:'Fraunces',serif;color:#fff;font-size:13.5px;line-height:1.2;}
+.sidebar-logo .brand small{display:block;font-family:'DM Sans',sans-serif;font-size:10px;
+  color:rgba(255,255,255,.4);font-weight:300;margin-top:2px;}
+
+.school-badge{margin:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);
+  border-radius:9px;padding:10px 12px;}
+.school-badge .sb-label{font-size:10px;text-transform:uppercase;letter-spacing:.6px;
+  color:rgba(255,255,255,.4);font-weight:700;margin-bottom:3px;}
+.school-badge .sb-name{font-size:13px;color:#fff;font-weight:600;}
+.school-badge .sb-role{font-size:11px;color:var(--ga);font-weight:500;margin-top:2px;}
+
+.nav{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 11px;border-radius:8px;
+  color:rgba(255,255,255,.5);font-size:13px;font-weight:500;cursor:pointer;
+  transition:all .2s;border:none;background:none;width:100%;text-align:left;font-family:inherit;}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85);}
+.nav-item.active{background:var(--gb);color:#fff;box-shadow:0 2px 12px rgba(45,138,78,.35);}
+.nav-item .ni{font-size:16px;width:20px;text-align:center;flex-shrink:0;}
+.nav-sep{height:1px;background:rgba(255,255,255,.07);margin:8px 10px;}
+.nav-label{font-size:10px;text-transform:uppercase;letter-spacing:.7px;color:rgba(255,255,255,.3);
+  font-weight:700;padding:6px 11px 2px;}
+.nav-bottom{padding:10px;border-top:1px solid rgba(255,255,255,.07);}
+
+.topbar{position:fixed;top:0;left:var(--sw);right:0;height:60px;background:var(--white);
+  border-bottom:1px solid var(--border);display:flex;align-items:center;
+  padding:0 28px;z-index:99;box-shadow:var(--sh-s);}
+.topbar-title{font-family:'Fraunces',serif;font-size:20px;font-weight:700;flex:1;}
+.topbar-acts{display:flex;align-items:center;gap:14px;}
+.tb-user{text-align:right;}
+.tb-user .tbname{font-size:13px;font-weight:700;}
+.tb-user .tbemail{font-size:11px;color:var(--txs);}
+.tb-user .tbrole{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;
+  padding:2px 7px;border-radius:10px;margin-top:2px;display:inline-block;}
+.tbrole.master{background:#fef3c7;color:#92400e;}
+.tbrole.admin{background:var(--gl);color:var(--gb);}
+.tbrole.user{background:var(--blue-l);color:var(--blue);}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--gb);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;cursor:pointer;}
+.avatar.master{background:linear-gradient(135deg,#92400e,#d97706);}
+
+.main{margin-left:var(--sw);padding-top:60px;min-height:100vh;}
+.page{padding:28px;animation:fadeUp .3s ease both;}
+.page.hidden{display:none!important;}
+
+/* ── CARDS & GRIDS ─────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;}
+.stat-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px;display:flex;align-items:center;gap:14px;box-shadow:var(--sh-s);
+  transition:transform .2s,box-shadow .2s;}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--sh-m);}
+.stat-card.primary{background:var(--gd);border-color:transparent;}
+.stat-card.primary .stat-label{color:rgba(255,255,255,.55);}
+.stat-card.primary .stat-val{color:#fff;}
+.stat-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;
+  justify-content:center;font-size:22px;flex-shrink:0;}
+.si-g{background:rgba(63,186,106,.15);}
+.si-a{background:var(--amber-l);}
+.si-s{background:#f1f5f9;}
+.si-b{background:var(--blue-l);}
+.si-r{background:var(--red-l);}
+.stat-label{font-size:11.5px;color:var(--txs);font-weight:600;margin-bottom:3px;}
+.stat-val{font-family:'Fraunces',serif;font-size:28px;font-weight:700;line-height:1;}
+.stat-desc{font-size:11px;color:var(--txs);margin-top:2px;}
+
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  box-shadow:var(--sh-s);overflow:hidden;}
+.card-hd{padding:16px 20px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.card-title{font-weight:700;font-size:14px;}
+.card-body{padding:0;}
+
+/* ── TABLE ─────────────────────── */
+table{width:100%;border-collapse:collapse;}
+thead th{text-align:left;padding:10px 16px;font-size:11px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.6px;color:var(--txs);
+  background:var(--gp);border-bottom:1px solid var(--border);}
+tbody tr{border-bottom:1px solid var(--border);transition:background .15s;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--gp);}
+tbody td{padding:11px 16px;font-size:13.5px;vertical-align:middle;}
+
+/* ── BADGES ────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;
+  font-size:11px;font-weight:700;}
+.badge.pendente{background:var(--amber-l);color:#92400e;}
+.badge.aprovado{background:#dcfce7;color:#166534;}
+.badge.rejeitado{background:var(--red-l);color:#991b1b;}
+.badge.master{background:#fef3c7;color:#92400e;}
+.badge.admin{background:var(--gl);color:var(--gb);}
+.badge.usuario{background:var(--blue-l);color:var(--blue);}
+
+/* ── BUTTONS ───────────────────── */
+.btn-prim{background:var(--gd);color:#fff;border:none;border-radius:9px;
+  padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;
+  display:inline-flex;align-items:center;gap:7px;transition:background .2s,box-shadow .2s;
+  box-shadow:0 2px 10px rgba(11,51,24,.2);}
+.btn-prim:hover{background:var(--gb);box-shadow:0 4px 16px rgba(11,51,24,.28);}
+.btn-sec{background:none;border:1px solid var(--border);border-radius:9px;
+  padding:10px 18px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:inherit;
+  color:var(--txm);transition:all .15s;display:inline-flex;align-items:center;gap:7px;}
+.btn-sec:hover{background:var(--gl);border-color:var(--ga);}
+.btn-sm{padding:7px 13px;font-size:12px;border-radius:7px;}
+.btn-ico{width:32px;height:32px;border-radius:7px;border:1px solid var(--border);
+  background:none;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:14px;color:var(--txm);transition:all .15s;}
+.btn-ico:hover{background:var(--gl);border-color:var(--ga);color:var(--gb);}
+.btn-approve{background:#dcfce7;color:#166534;border:none;border-radius:7px;
+  width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:15px;transition:background .15s;}
+.btn-approve:hover{background:#bbf7d0;}
+.btn-reject{background:var(--red-l);color:var(--red);border:none;border-radius:7px;
+  width:30px;height:30px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+  font-size:15px;transition:background .15s;}
+.btn-reject:hover{background:#fecaca;}
+
+/* ── PAGE HEADER ───────────────── */
+.ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px;}
+.ph h2{font-family:'Fraunces',serif;font-size:22px;}
+.ph-acts{display:flex;gap:10px;align-items:center;}
+
+/* ── SEARCH / FILTER ───────────── */
+.search-bar{display:flex;align-items:center;background:var(--white);
+  border:1px solid var(--border);border-radius:9px;padding:0 14px;gap:8px;
+  transition:border-color .2s;}
+.search-bar:focus-within{border-color:var(--ga);}
+.search-bar span{color:var(--txs);}
+.search-bar input{border:none;outline:none;padding:10px 0;
+  font-size:13.5px;font-family:inherit;flex:1;background:none;color:var(--txt);}
+.filter-row{display:flex;gap:10px;margin-bottom:16px;}
+.filter-row .search-bar{flex:1;}
+select.filter-sel{border:1px solid var(--border);border-radius:9px;padding:10px 12px;
+  font-size:13px;font-family:inherit;background:var(--white);color:var(--txt);
+  cursor:pointer;outline:none;transition:border-color .2s;}
+select.filter-sel:focus{border-color:var(--ga);}
+
+/* ── TABS ──────────────────────── */
+.tabs{display:flex;gap:0;margin-bottom:16px;flex-wrap:wrap;}
+.tab{padding:8px 16px;font-size:13px;font-weight:500;border:1px solid var(--border);
+  background:none;cursor:pointer;font-family:inherit;color:var(--txs);transition:all .15s;}
+.tab:first-child{border-radius:8px 0 0 8px;}
+.tab:last-child{border-radius:0 8px 8px 0;border-left:none;}
+.tab:not(:first-child):not(:last-child){border-left:none;}
+.tab.active{background:var(--gd);color:#fff;border-color:var(--gd);}
+.tab .cnt{background:var(--gl);color:var(--gb);border-radius:10px;
+  padding:1px 7px;font-size:11px;margin-left:4px;}
+.tab.active .cnt{background:rgba(255,255,255,.2);color:#fff;}
+
+/* ── PAGINATION ────────────────── */
+.pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:16px;}
+.pg-btn{width:32px;height:32px;border-radius:7px;border:1px solid var(--border);
+  background:none;cursor:pointer;font-size:13px;font-family:inherit;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.pg-btn.active{background:var(--gd);color:#fff;border-color:var(--gd);}
+.pg-btn:hover:not(.active){background:var(--gl);border-color:var(--ga);}
+
+/* ── OCCURRENCE ITEMS ──────────── */
+.occ-list{display:flex;flex-direction:column;}
+.occ-item{display:flex;align-items:center;gap:14px;padding:15px 20px;
+  border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer;}
+.occ-item:last-child{border-bottom:none;}
+.occ-item:hover{background:var(--gp);}
+.occ-av{width:42px;height:42px;border-radius:10px;background:var(--gl);
+  display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.occ-info{flex:1;min-width:0;}
+.occ-meta{font-size:11px;color:var(--txs);margin-bottom:3px;}
+.occ-name{font-weight:700;font-size:14px;margin-bottom:2px;}
+.occ-desc{font-size:13px;color:var(--txm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.occ-new-badge{background:var(--ga);color:#fff;font-size:10px;font-weight:700;
+  padding:2px 8px;border-radius:10px;flex-shrink:0;}
+
+/* ── DETAIL PANEL ──────────────── */
+.detail-panel{position:fixed;top:60px;right:0;bottom:0;width:340px;background:var(--white);
+  border-left:1px solid var(--border);padding:24px 22px;z-index:200;
+  transform:translateX(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);
+  box-shadow:-4px 0 24px rgba(11,51,24,.1);overflow-y:auto;}
+.detail-panel.open{transform:translateX(0);}
+.dp-close{position:absolute;top:16px;right:16px;width:30px;height:30px;border-radius:7px;
+  border:1px solid var(--border);background:none;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--txm);transition:all .15s;}
+.dp-close:hover{background:var(--red-l);border-color:var(--red);color:var(--red);}
+.dp-title{font-family:'Fraunces',serif;font-size:18px;font-weight:700;margin-bottom:20px;padding-right:30px;}
+.dp-row{margin-bottom:15px;}
+.dp-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.6px;font-weight:700;
+  color:var(--txs);margin-bottom:4px;}
+.dp-val{font-size:14px;font-weight:500;color:var(--txt);}
+.dp-divider{height:1px;background:var(--border);margin:18px 0;}
+
+/* ── MODAL ─────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;pointer-events:none;transition:opacity .25s;}
+.modal-overlay.open{opacity:1;pointer-events:all;}
+.modal{background:var(--white);border-radius:18px;padding:32px 28px;
+  width:480px;max-width:95vw;max-height:90vh;overflow-y:auto;
+  box-shadow:var(--sh-l);transform:scale(.95);transition:transform .25s;}
+.modal-overlay.open .modal{transform:scale(1);}
+.modal h3{font-family:'Fraunces',serif;font-size:20px;margin-bottom:6px;}
+.modal .modal-sub{font-size:13px;color:var(--txs);margin-bottom:22px;}
+.form-group{margin-bottom:14px;}
+.form-group label{display:block;font-size:11.5px;font-weight:700;color:var(--txs);
+  margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
+.form-group input,.form-group select,.form-group textarea{
+  width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;
+  font-size:14px;font-family:inherit;outline:none;transition:border-color .2s;color:var(--txt);}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{border-color:var(--ga);}
+.form-group textarea{resize:vertical;min-height:90px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.modal-acts{display:flex;gap:10px;margin-top:22px;}
+.modal-acts .btn-sec{flex:1;justify-content:center;}
+.modal-acts .btn-prim{flex:2;justify-content:center;}
+
+/* ── CHART ─────────────────────── */
+.chart-box{padding:20px;height:240px;position:relative;}
+.grid-two{display:grid;grid-template-columns:1fr 360px;gap:20px;}
+
+/* ── SCHOOLS LIST ──────────────── */
+.school-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);
+  padding:20px;display:flex;align-items:center;gap:16px;box-shadow:var(--sh-s);
+  transition:transform .2s,box-shadow .2s;}
+.school-card:hover{transform:translateY(-2px);box-shadow:var(--sh-m);}
+.sc-ico{width:52px;height:52px;background:var(--gl);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;}
+.sc-info{flex:1;}
+.sc-name{font-weight:700;font-size:15px;margin-bottom:3px;}
+.sc-meta{font-size:12px;color:var(--txs);}
+.sc-stats{display:flex;gap:16px;margin-top:8px;}
+.sc-stat{font-size:12px;color:var(--txm);}
+.sc-stat strong{color:var(--gb);font-weight:700;}
+.schools-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:16px;}
+
+/* ── EMPTY ─────────────────────── */
+.empty{text-align:center;padding:56px 20px;color:var(--txs);}
+.empty .ei{font-size:44px;margin-bottom:14px;}
+.empty p{font-size:14px;}
+
+/* ── NOTIF DOT ─────────────────── */
+.notif-dot{position:absolute;top:-2px;right:-2px;width:8px;height:8px;
+  border-radius:50%;background:var(--red);border:2px solid var(--white);}
+.notif-wrap{position:relative;}
+
+/* ── FORM SECTION ──────────────── */
+.form-section{background:var(--white);border:1px solid var(--border);
+  border-radius:var(--r);padding:24px;box-shadow:var(--sh-s);max-width:560px;}
+.form-section h3{font-family:'Fraunces',serif;font-size:17px;margin-bottom:18px;}
+
+/* ── INFO BANNER ───────────────── */
+.info-banner{background:var(--blue-l);border:1px solid #bfdbfe;border-radius:10px;
+  padding:12px 16px;font-size:13px;color:#1e40af;margin-bottom:20px;
+  display:flex;align-items:flex-start;gap:10px;}
+
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+</style>
+</head>
+<body>
+
+<div id="toast-wrap"></div>
+
+<!-- ════ LOGIN ════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🛡️</div>
+    <h1 class="login-title">ESCOLA SEGURA</h1>
+    <p class="login-sub">Sistema de Ocorrências Escolares</p>
+    <div class="field"><span class="fi">👤</span><input type="text" id="lu" placeholder="Usuário ou e-mail"></div>
+    <div class="field"><span class="fi">🔒</span><input type="password" id="lp" placeholder="Senha"></div>
+    <div class="login-err" id="lerr"></div>
+    <button class="btn-login" onclick="doLogin()">Entrar</button>
+    <span class="login-reg-link" onclick="showRegister()">Criar nova conta</span>
+  </div>
+</div>
+
+<!-- ════ REGISTER ════ -->
+<div id="register-screen">
+  <div class="reg-card">
+    <div class="login-logo">📝</div>
+    <h1 class="login-title">Criar conta</h1>
+    <p class="login-sub">Sua conta precisa ser aprovada por um administrador</p>
+    <div class="field"><span class="fi">👤</span><input type="text" id="ru" placeholder="Nome de usuário (sem espaços)"></div>
+    <div class="field"><span class="fi">✉️</span><input type="text" id="re" placeholder="E-mail"></div>
+    <div class="field"><span class="fi">📛</span><input type="text" id="rn" placeholder="Nome completo"></div>
+    <div class="field"><span class="fi">🔒</span><input type="password" id="rp" placeholder="Senha"></div>
+    <div class="field"><span class="fi">🔒</span><input type="password" id="rp2" placeholder="Confirmar senha"></div>
+    <div class="login-err" id="rerr"></div>
+    <button class="btn-login" onclick="doRegister()">Solicitar cadastro</button>
+    <span class="login-reg-link" onclick="showLogin()">← Voltar ao login</span>
+  </div>
+</div>
+
+<!-- ════ APP ════ -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="ico">🛡️</div>
+      <div class="brand">ESCOLA SEGURA<small>Ocorrências Escolares</small></div>
+    </div>
+    <div class="school-badge" id="sidebar-school-badge" style="display:none">
+      <div class="sb-label">Escola atual</div>
+      <div class="sb-name" id="sb-school-name">—</div>
+      <div class="sb-role" id="sb-role-label">—</div>
+    </div>
+    <nav class="nav" id="sidebar-nav"></nav>
+    <div class="nav-bottom">
+      <button class="nav-item" onclick="doLogout()"><span class="ni">🚪</span> Sair</button>
+    </div>
+  </aside>
+
+  <header class="topbar">
+    <h1 class="topbar-title" id="topbar-title">Dashboard</h1>
+    <div class="topbar-acts">
+      <div class="notif-wrap">
+        <button class="btn-ico" onclick="goTo('ocorrencias')" title="Ocorrências pendentes" id="notif-btn" style="display:none">🔔
+          <div class="notif-dot" id="notif-dot" style="display:none"></div>
+        </button>
+      </div>
+      <div class="tb-user">
+        <div class="tbname" id="tb-name">—</div>
+        <div class="tbemail" id="tb-email">—</div>
+        <div class="tbrole" id="tb-role">—</div>
+      </div>
+      <div class="avatar" id="tb-avatar">?</div>
+    </div>
+  </header>
+
+  <main class="main">
+    <!-- pages injected by JS -->
+  </main>
+</div>
+
+<!-- DETAIL PANEL -->
+<div class="detail-panel" id="detail-panel">
+  <button class="dp-close" onclick="closeDetail()">✕</button>
+  <div class="dp-title">Detalhes da ocorrência</div>
+  <div id="dp-content"></div>
+  <button class="btn-prim" style="width:100%;margin-top:20px;justify-content:center" onclick="closeDetail()">← Voltar</button>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal-box"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+// DATA STORE  (localStorage for persistence)
+// ═══════════════════════════════════════════════════════
+const DB = {
+  get(k){ try{ return JSON.parse(localStorage.getItem('es_'+k)); }catch(e){ return null; } },
+  set(k,v){ localStorage.setItem('es_'+k, JSON.stringify(v)); },
+};
+
+function initDB(){
+  if(!DB.get('users')){
+    DB.set('users',[
+      {id:'master',username:'rafael.admin',password:'83375262',email:'rafael@escolasegura.com',
+       name:'Rafael Administrador',role:'master',schoolId:null,status:'aprovado',createdAt:now()}
+    ]);
+  }
+  if(!DB.get('schools')) DB.set('schools',[]);
+  if(!DB.get('occurrences')) DB.set('occurrences',[]);
+}
+
+function getUsers(){ return DB.get('users')||[]; }
+function getSchools(){ return DB.get('schools')||[]; }
+function getOccs(){ return DB.get('occurrences')||[]; }
+function saveUsers(u){ DB.set('users',u); }
+function saveSchools(s){ DB.set('schools',s); }
+function saveOccs(o){ DB.set('occurrences',o); }
+
+function now(){
+  const d=new Date();
+  return {
+    iso:d.toISOString(),
+    date:d.toLocaleDateString('pt-BR'),
+    time:d.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}),
+    ts:d.getTime()
+  };
+}
+
+function uid(){ return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+// ═══════════════════════════════════════════════════════
+// SESSION
+// ═══════════════════════════════════════════════════════
+let SESSION = null;
+
+function doLogin(){
+  const u=document.getElementById('lu').value.trim();
+  const p=document.getElementById('lp').value;
+  const users=getUsers();
+  const found=users.find(x=>(x.username===u||x.email===u)&&x.password===p);
+  if(!found){ showErr('lerr','Usuário ou senha incorretos.'); return; }
+  if(found.status==='pendente'){ showErr('lerr','Sua conta aguarda aprovação do administrador.'); return; }
+  if(found.status==='rejeitado'){ showErr('lerr','Sua conta foi rejeitada. Contate um administrador.'); return; }
+  SESSION=found;
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='block';
+  buildApp();
+}
+
+function doLogout(){
+  SESSION=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('lu').value='';
+  document.getElementById('lp').value='';
+  document.getElementById('lerr').textContent='';
+}
+
+function doRegister(){
+  const u=document.getElementById('ru').value.trim();
+  const e=document.getElementById('re').value.trim();
+  const n=document.getElementById('rn').value.trim();
+  const p=document.getElementById('rp').value;
+  const p2=document.getElementById('rp2').value;
+  if(!u||!e||!n||!p){ showErr('rerr','Preencha todos os campos.'); return; }
+  if(p!==p2){ showErr('rerr','As senhas não coincidem.'); return; }
+  if(/\s/.test(u)){ showErr('rerr','O nome de usuário não pode ter espaços.'); return; }
+  const users=getUsers();
+  if(users.find(x=>x.username===u)){ showErr('rerr','Nome de usuário já existe.'); return; }
+  if(users.find(x=>x.email===e)){ showErr('rerr','E-mail já cadastrado.'); return; }
+  const newUser={id:uid(),username:u,email:e,name:n,password:p,role:'usuario',schoolId:null,status:'pendente',createdAt:now()};
+  users.push(newUser);
+  saveUsers(users);
+  toast('✅ Cadastro enviado! Aguarde aprovação do administrador.');
+  showLogin();
+}
+
+function showRegister(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('register-screen').style.display='flex';
+}
+function showLogin(){
+  document.getElementById('register-screen').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+function showErr(id,msg){ document.getElementById(id).textContent=msg; }
+
+// ═══════════════════════════════════════════════════════
+// BUILD APP
+// ═══════════════════════════════════════════════════════
+const PAGES_MAP = {
+  master: ['dashboard','escolas','usuarios','ocorrencias','config'],
+  admin:  ['dashboard','usuarios','ocorrencias','config'],
+  usuario:['nova-ocorrencia','minhas-ocorrencias'],
+};
+const PAGE_LABELS = {
+  dashboard:'Dashboard', escolas:'Escolas', usuarios:'Usuários',
+  ocorrencias:'Ocorrências', config:'Configurações',
+  'nova-ocorrencia':'Registrar Ocorrência','minhas-ocorrencias':'Minhas Ocorrências',
+};
+const PAGE_ICONS = {
+  dashboard:'🏠', escolas:'🏫', usuarios:'👥', ocorrencias:'📋',
+  config:'⚙️','nova-ocorrencia':'✏️','minhas-ocorrencias':'📄',
+};
+
+let currentPage='';
+let chartInstances={};
+
+function buildApp(){
+  // topbar
+  const r=SESSION.role;
+  document.getElementById('tb-name').textContent=SESSION.name;
+  document.getElementById('tb-email').textContent=SESSION.email||SESSION.username;
+  document.getElementById('tb-role').textContent=r==='master'?'Master Admin':r==='admin'?'Administrador':'Usuário';
+  document.getElementById('tb-role').className='tbrole '+r;
+  document.getElementById('tb-avatar').textContent=SESSION.name[0].toUpperCase();
+  document.getElementById('tb-avatar').className='avatar '+(r==='master'?'master':'');
+
+  // school badge
+  const badge=document.getElementById('sidebar-school-badge');
+  if(r!=='master' && SESSION.schoolId){
+    const sc=getSchools().find(s=>s.id===SESSION.schoolId);
+    if(sc){
+      badge.style.display='block';
+      document.getElementById('sb-school-name').textContent=sc.name;
+      document.getElementById('sb-role-label').textContent=r==='admin'?'Administrador':'Usuário';
+    }
+  } else { badge.style.display='none'; }
+
+  // notif button for admin
+  if(r==='admin'||r==='master'){
+    document.getElementById('notif-btn').style.display='flex';
+  }
+
+  // build nav
+  const nav=document.getElementById('sidebar-nav');
+  nav.innerHTML='';
+  const pages=PAGES_MAP[r]||[];
+  pages.forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='nav-item';
+    btn.dataset.page=p;
+    btn.innerHTML=`<span class="ni">${PAGE_ICONS[p]}</span> ${PAGE_LABELS[p]}`;
+    btn.onclick=()=>goTo(p);
+    nav.appendChild(btn);
+  });
+
+  // build page containers
+  const main=document.querySelector('.main');
+  main.innerHTML='';
+  pages.forEach(p=>{
+    const div=document.createElement('div');
+    div.className='page hidden';
+    div.id='page-'+p;
+    main.appendChild(div);
+  });
+
+  goTo(pages[0]);
+  updateNotifDot();
+}
+
+function goTo(pageId){
+  if(currentPage===pageId) return;
+  currentPage=pageId;
+
+  document.querySelectorAll('.page').forEach(p=>p.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
+
+  const el=document.getElementById('page-'+pageId);
+  if(!el) return;
+  el.classList.remove('hidden');
+
+  const btn=document.querySelector(`.nav-item[data-page="${pageId}"]`);
+  if(btn) btn.classList.add('active');
+
+  document.getElementById('topbar-title').textContent=PAGE_LABELS[pageId]||pageId;
+  closeDetail();
+  renderPage(pageId, el);
+}
+
+function renderPage(id, el){
+  // destroy old charts in this page
+  el.innerHTML='';
+  Object.keys(chartInstances).forEach(k=>{
+    if(k.startsWith(id+'_')){ try{chartInstances[k].destroy();}catch(e){} delete chartInstances[k]; }
+  });
+
+  switch(id){
+    case 'dashboard':       renderDashboard(el); break;
+    case 'escolas':         renderEscolas(el); break;
+    case 'usuarios':        renderUsuarios(el); break;
+    case 'ocorrencias':     renderOcorrencias(el); break;
+    case 'config':          renderConfig(el); break;
+    case 'nova-ocorrencia': renderNovaOcc(el); break;
+    case 'minhas-ocorrencias': renderMinhasOccs(el); break;
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════════════
+function renderDashboard(el){
+  const r=SESSION.role;
+  const allOccs=getOccs();
+  const occs=r==='master'?allOccs:allOccs.filter(o=>o.schoolId===SESSION.schoolId);
+  const allUsers=getUsers();
+  const users=r==='master'?allUsers.filter(u=>u.id!=='master'):allUsers.filter(u=>u.schoolId===SESSION.schoolId&&u.id!=='master');
+  const schools=getSchools();
+  const pending=users.filter(u=>u.status==='pendente');
+
+  let statsHtml='';
+  if(r==='master'){
+    statsHtml=`
+    <div class="stat-card primary"><div><div class="stat-label">Escolas</div><div class="stat-val">${schools.length}</div><div class="stat-desc">Cadastradas</div></div><span style="font-size:44px;margin-left:auto;opacity:.3">🏫</span></div>
+    <div class="stat-card"><div class="stat-icon si-g">👥</div><div><div class="stat-label">Usuários</div><div class="stat-val">${users.length}</div><div class="stat-desc">Total do sistema</div></div></div>
+    <div class="stat-card"><div class="stat-icon si-a">⏳</div><div><div class="stat-label">Pendentes</div><div class="stat-val">${pending.length}</div><div class="stat-desc">Aguardando aprovação</div></div></div>
+    <div class="stat-card"><div class="stat-icon si-s">📄</div><div><div class="stat-label">Ocorrências</div><div class="stat-val">${occs.length}</div><div class="stat-desc">Total registradas</div></div></div>`;
+  } else {
+    statsHtml=`
+    <div class="stat-card primary"><div><div class="stat-label">Usuários</div><div class="stat-val">${users.length}</div><div class="stat-desc">Na sua escola</div></div><span style="font-size:44px;margin-left:auto;opacity:.3">👥</span></div>
+    <div class="stat-card"><div class="stat-icon si-a">⏳</div><div><div class="stat-label">Pendentes</div><div class="stat-val">${pending.length}</div><div class="stat-desc">Aguardando aprovação</div></div></div>
+    <div class="stat-card"><div class="stat-icon si-s">📄</div><div><div class="stat-label">Ocorrências</div><div class="stat-val">${occs.length}</div><div class="stat-desc">Registradas</div></div></div>
+    <div class="stat-card"><div class="stat-icon si-b">📅</div><div><div class="stat-label">Este mês</div><div class="stat-val">${occs.filter(o=>{const d=new Date(o.createdAt.iso);const n=new Date();return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();}).length}</div><div class="stat-desc">Ocorrências</div></div></div>`;
+  }
+
+  const recent=occs.slice(-5).reverse();
+  const recentRows=recent.length?recent.map(o=>`
+    <tr>
+      <td style="font-size:12px;color:var(--txs)">${o.createdAt.date}<br>${o.createdAt.time}</td>
+      <td><strong>${o.studentName}</strong><br><span style="font-size:11px;color:var(--txs)">${o.turma}</span></td>
+      <td style="color:var(--txm);max-width:200px"><span style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${o.description}</span></td>
+      <td><button class="btn-ico" onclick="showOccDetail('${o.id}')">👁</button></td>
+    </tr>`).join(''):`<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--txs)">Nenhuma ocorrência ainda</td></tr>`;
+
+  // chart data
+  const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+  const monthCounts=Array(12).fill(0);
+  occs.forEach(o=>{ const m=new Date(o.createdAt.iso).getMonth(); monthCounts[m]++; });
+
+  el.innerHTML=`
+  <div class="stat-grid">${statsHtml}</div>
+  <div class="grid-two">
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Ocorrências recentes</span></div>
+      <table><thead><tr><th>Data/Hora</th><th>Aluno / Turma</th><th>Descrição</th><th></th></tr></thead>
+      <tbody>${recentRows}</tbody></table>
+    </div>
+    <div class="card">
+      <div class="card-hd"><span class="card-title">Ocorrências por mês</span></div>
+      <div class="chart-box"><canvas id="dash-chart"></canvas></div>
+    </div>
+  </div>`;
+
+  setTimeout(()=>{
+    const ctx=document.getElementById('dash-chart');
+    if(!ctx) return;
+    chartInstances['dashboard_main']=new Chart(ctx,{
+      type:'line',
+      data:{labels:months,datasets:[{data:monthCounts,borderColor:'#2d8a4e',
+        backgroundColor:'rgba(45,138,78,.07)',tension:.4,fill:true,
+        pointBackgroundColor:'#2d8a4e',pointRadius:4,borderWidth:2.5}]},
+      options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+        scales:{x:{grid:{color:'#e8f5ee'},ticks:{font:{size:11}}},
+                y:{grid:{color:'#e8f5ee'},ticks:{font:{size:11}},beginAtZero:true}}}
+    });
+  },50);
+}
+
+// ═══════════════════════════════════════════════════════
+// ESCOLAS (master only)
+// ═══════════════════════════════════════════════════════
+function renderEscolas(el){
+  const schools=getSchools();
+  const allUsers=getUsers();
+
+  const cards=schools.length?`<div class="schools-grid">${schools.map(s=>{
+    const usrs=allUsers.filter(u=>u.schoolId===s.id&&u.id!=='master');
+    const occs=getOccs().filter(o=>o.schoolId===s.id);
+    return `<div class="school-card">
+      <div class="sc-ico">🏫</div>
+      <div class="sc-info">
+        <div class="sc-name">${s.name}</div>
+        <div class="sc-meta">${s.city||'—'} • Criada em ${s.createdAt.date}</div>
+        <div class="sc-stats">
+          <div class="sc-stat">👥 <strong>${usrs.length}</strong> usuários</div>
+          <div class="sc-stat">📄 <strong>${occs.length}</strong> ocorrências</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="btn-sec btn-sm" onclick="editSchool('${s.id}')">✏️ Editar</button>
+        <button class="btn-ico" style="color:var(--red);border-color:var(--red-l)" onclick="deleteSchool('${s.id}')">🗑</button>
+      </div>
+    </div>`;}).join('')}</div>`
+  :`<div class="empty"><div class="ei">🏫</div><p>Nenhuma escola cadastrada ainda.</p></div>`;
+
+  el.innerHTML=`
+  <div class="ph"><h2>Escolas</h2><div class="ph-acts">
+    <button class="btn-prim" onclick="openNewSchool()">➕ Nova escola</button>
+  </div></div>
+  ${cards}`;
+}
+
+function openNewSchool(){
+  showModal(`<h3>🏫 Nova escola</h3><p class="modal-sub">Cadastre uma nova escola no sistema</p>
+  <div class="form-group"><label>Nome da escola</label><input id="m-sname" placeholder="Ex: Escola Estadual São Paulo"></div>
+  <div class="form-row">
+    <div class="form-group"><label>Cidade</label><input id="m-scity" placeholder="São Paulo"></div>
+    <div class="form-group"><label>Estado (UF)</label><input id="m-suf" placeholder="SP" maxlength="2"></div>
+  </div>
+  <div class="form-group"><label>E-mail de contato</label><input id="m-semail" type="email" placeholder="escola@email.com"></div>
+  <div class="modal-acts">
+    <button class="btn-sec" onclick="closeModal()">Cancelar</button>
+    <button class="btn-prim" onclick="saveNewSchool()">💾 Salvar escola</button>
+  </div>`);
+}
+
+function saveNewSchool(){
+  const name=document.getElementById('m-sname').value.trim();
+  if(!name){ toast('⚠️ Informe o nome da escola.','warning'); return; }
+  const schools=getSchools();
+  schools.push({id:uid(),name,city:document.getElementById('m-scity').value.trim(),
+    uf:document.getElementById('m-suf').value.trim().toUpperCase(),
+    email:document.getElementById('m-semail').value.trim(),createdAt:now()});
+  saveSchools(schools);
+  closeModal(); toast('✅ Escola cadastrada com sucesso!');
+  renderPage('escolas',document.getElementById('page-escolas'));
+}
+
+function editSchool(id){
+  const s=getSchools().find(x=>x.id===id);
+  if(!s) return;
+  showModal(`<h3>✏️ Editar escola</h3><p class="modal-sub">${s.name}</p>
+  <div class="form-group"><label>Nome da escola</label><input id="m-sname" value="${s.name}"></div>
+  <div class="form-row">
+    <div class="form-group"><label>Cidade</label><input id="m-scity" value="${s.city||''}"></div>
+    <div class="form-group"><label>UF</label><input id="m-suf" value="${s.uf||''}" maxlength="2"></div>
+  </div>
+  <div class="form-group"><label>E-mail</label><input id="m-semail" value="${s.email||''}"></div>
+  <div class="modal-acts">
+    <button class="btn-sec" onclick="closeModal()">Cancelar</button>
+    <button class="btn-prim" onclick="saveEditSchool('${id}')">💾 Salvar</button>
+  </div>`);
+}
+
+function saveEditSchool(id){
+  const schools=getSchools();
+  const idx=schools.findIndex(s=>s.id===id);
+  if(idx<0) return;
+  schools[idx].name=document.getElementById('m-sname').value.trim()||schools[idx].name;
+  schools[idx].city=document.getElementById('m-scity').value.trim();
+  schools[idx].uf=document.getElementById('m-suf').value.trim().toUpperCase();
+  schools[idx].email=document.getElementById('m-semail').value.trim();
+  saveSchools(schools);
+  closeModal(); toast('✅ Escola atualizada!');
+  renderPage('escolas',document.getElementById('page-escolas'));
+}
+
+function deleteSchool(id){
+  if(!confirm('Excluir esta escola? Todos os usuários e ocorrências vinculados serão desvinculados.')) return;
+  const schools=getSchools().filter(s=>s.id!==id);
+  saveSchools(schools);
+  const users=getUsers().map(u=>u.schoolId===id?{...u,schoolId:null}:u);
+  saveUsers(users);
+  toast('🗑 Escola removida.','warning');
+  renderPage('escolas',document.getElementById('page-escolas'));
+}
+
+// ═══════════════════════════════════════════════════════
+// USUARIOS
+// ═══════════════════════════════════════════════════════
+let userFilter={tab:'todos',q:''};
+
+function renderUsuarios(el){
+  const r=SESSION.role;
+  const allUsers=getUsers().filter(u=>u.id!=='master');
+  const users=r==='master'?allUsers:allUsers.filter(u=>u.schoolId===SESSION.schoolId);
+  const schools=getSchools();
+
+  const cnts={
+    todos:users.length,
+    pendente:users.filter(u=>u.status==='pendente').length,
+    aprovado:users.filter(u=>u.status==='aprovado').length,
+    rejeitado:users.filter(u=>u.status==='rejeitado').length,
+  };
+
+  let filtered=users.filter(u=>userFilter.tab==='todos'||u.status===userFilter.tab);
+  if(userFilter.q) filtered=filtered.filter(u=>
+    u.name.toLowerCase().includes(userFilter.q)||
+    u.username.toLowerCase().includes(userFilter.q)||
+    (u.email||'').toLowerCase().includes(userFilter.q)
+  );
+
+  const rows=filtered.length?filtered.map(u=>{
+    const sc=schools.find(s=>s.id===u.schoolId);
+    const canEdit=r==='master'||(r==='admin'&&u.schoolId===SESSION.schoolId&&u.role!=='master');
+    return `<tr>
+      <td><strong>${u.name}</strong><br><span style="font-size:11px;color:var(--txs)">@${u.username}</span></td>
+      <td style="color:var(--txs);font-size:12.5px">${u.email||'—'}</td>
+      ${r==='master'?`<td style="font-size:12.5px">${sc?sc.name:'<span style="color:var(--txs)">Sem escola</span>'}</td>`:''}
+      <td><span class="badge ${u.role}">${u.role==='master'?'Master':u.role==='admin'?'Admin':'Usuário'}</span></td>
+      <td><span class="badge ${u.status}">${cap(u.status)}</span></td>
+      <td style="white-space:nowrap">
+        ${canEdit?`
+        <div style="display:flex;gap:5px">
+          ${u.status==='pendente'?`<button class="btn-approve" onclick="approveUser('${u.id}')" title="Aprovar">✓</button>
+          <button class="btn-reject" onclick="rejectUser('${u.id}')" title="Rejeitar">✕</button>`:''}
+          <button class="btn-ico" onclick="editUser('${u.id}')" title="Editar">✏️</button>
+          <button class="btn-ico" style="color:var(--red)" onclick="deleteUser('${u.id}')" title="Remover">🗑</button>
+        </div>`:'<span style="color:var(--txs);font-size:12px">—</span>'}
+      </td>
+    </tr>`;}).join('')
+  :`<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--txs)">Nenhum usuário encontrado.</td></tr>`;
+
+  const masterCanAddAdmin=r==='master';
+  const schoolSelect=r==='master'?`<select class="filter-sel" id="usr-school-filter" onchange="filterUsers()" style="min-width:160px">
+    <option value="">Todas as escolas</option>
+    ${schools.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
+  </select>`:'';
+
+  el.innerHTML=`
+  <div class="ph"><h2>Usuários</h2>
+    <div class="ph-acts">
+      ${r==='master'?`<button class="btn-prim" onclick="openNewUser()">➕ Novo usuário</button>`:''}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:16px 16px 0">
+      <div class="filter-row">
+        <div class="search-bar" style="flex:1"><span>🔍</span>
+          <input type="text" id="usr-search" placeholder="Buscar usuário..." oninput="setUserQ(this.value)" value="${userFilter.q}">
+        </div>
+        ${schoolSelect}
+      </div>
+      <div class="tabs">
+        <button class="tab ${userFilter.tab==='todos'?'active':''}" onclick="setUserTab('todos',this)">Todos <span class="cnt">${cnts.todos}</span></button>
+        <button class="tab ${userFilter.tab==='pendente'?'active':''}" onclick="setUserTab('pendente',this)">Pendentes <span class="cnt">${cnts.pendente}</span></button>
+        <button class="tab ${userFilter.tab==='aprovado'?'active':''}" onclick="setUserTab('aprovado',this)">Aprovados <span class="cnt">${cnts.aprovado}</span></button>
+        <button class="tab ${userFilter.tab==='rejeitado'?'active':''}" onclick="setUserTab('rejeitado',this)">Rejeitados <span class="cnt">${cnts.rejeitado}</span></button>
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>Nome / Usuário</th><th>E-mail</th>
+        ${r==='master'?'<th>Escola</th>':''}
+        <th>Perfil</th><th>Status</th><th>Ações</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  </div>`;
+}
+
+function setUserTab(tab){ userFilter.tab=tab; renderPage('usuarios',document.getElementById('page-usuarios')); }
+function setUserQ(q){ userFilter.q=q.toLowerCase(); renderPage('usuarios',document.getElementById('page-usuarios')); }
+function filterUsers(){ renderPage('usuarios',document.getElementById('page-usuarios')); }
+
+function approveUser(id){
+  const users=getUsers(); const idx=users.findIndex(u=>u.id===id);
+  if(idx<0) return;
+  users[idx].status='aprovado';
+  saveUsers(users); toast('✅ Usuário aprovado!');
+  renderPage('usuarios',document.getElementById('page-usuarios'));
+  updateNotifDot();
+}
+function rejectUser(id){
+  const users=getUsers(); const idx=users.findIndex(u=>u.id===id);
+  if(idx<0) return;
+  users[idx].status='rejeitado';
+  saveUsers(users); toast('❌ Usuário rejeitado.','warning');
+  renderPage('usuarios',document.getElementById('page-usuarios'));
+  updateNotifDot();
+}
+function deleteUser(id){
+  if(!confirm('Remover este usuário?')) return;
+  const users=getUsers().filter(u=>u.id!==id);
+  saveUsers(users); toast('🗑 Usuário removido.','warning');
+  renderPage('usuarios',document.getElementById('page-usuarios'));
+}
+
+function openNewUser(){
+  const schools=getSchools();
+  showModal(`<h3>➕ Novo usuário</h3><p class="modal-sub">Crie um usuário diretamente no sistema</p>
+  <div class="form-row">
+    <div class="form-group"><label>Nome completo</label><input id="m-uname" placeholder="Nome"></div>
+    <div class="form-group"><label>Usuário</label><input id="m-uuser" placeholder="sem espaços"></div>
+  </div>
+  <div class="form-group"><label>E-mail</label><input id="m-uemail" type="email" placeholder="email@escola.com"></div>
+  <div class="form-group"><label>Senha</label><input id="m-upass" type="password" placeholder="Senha"></div>
+  <div class="form-row">
+    <div class="form-group"><label>Escola</label><select id="m-uschool">
+      <option value="">Sem escola</option>
+      ${schools.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Perfil</label><select id="m-urole">
+      <option value="usuario">Usuário</option>
+      <option value="admin">Administrador</option>
+    </select></div>
+  </div>
+  <div class="modal-acts">
+    <button class="btn-sec" onclick="closeModal()">Cancelar</button>
+    <button class="btn-prim" onclick="saveNewUser()">💾 Criar usuário</button>
+  </div>`);
+}
+
+function saveNewUser(){
+  const name=document.getElementById('m-uname').value.trim();
+  const uname=document.getElementById('m-uuser').value.trim();
+  const email=document.getElementById('m-uemail').value.trim();
+  const pass=document.getElementById('m-upass').value;
+  const schoolId=document.getElementById('m-uschool').value||null;
+  const role=document.getElementById('m-urole').value;
+  if(!name||!uname||!pass){ toast('⚠️ Preencha nome, usuário e senha.','warning'); return; }
+  if(/\s/.test(uname)){ toast('⚠️ Usuário sem espaços.','warning'); return; }
+  const users=getUsers();
+  if(users.find(u=>u.username===uname)){ toast('⚠️ Usuário já existe.','warning'); return; }
+  users.push({id:uid(),username:uname,email,name,password:pass,role,schoolId,status:'aprovado',createdAt:now()});
+  saveUsers(users); closeModal(); toast('✅ Usuário criado!');
+  renderPage('usuarios',document.getElementById('page-usuarios'));
+}
+
+function editUser(id){
+  const u=getUsers().find(x=>x.id===id);
+  const schools=getSchools();
+  const r=SESSION.role;
+  if(!u) return;
+  showModal(`<h3>✏️ Editar usuário</h3><p class="modal-sub">${u.name}</p>
+  <div class="form-row">
+    <div class="form-group"><label>Nome</label><input id="m-uname" value="${u.name}"></div>
+    <div class="form-group"><label>E-mail</label><input id="m-uemail" value="${u.email||''}"></div>
+  </div>
+  <div class="form-group"><label>Nova senha (deixe em branco para manter)</label><input id="m-upass" type="password" placeholder="Nova senha"></div>
+  ${r==='master'?`
+  <div class="form-row">
+    <div class="form-group"><label>Escola</label><select id="m-uschool">
+      <option value="">Sem escola</option>
+      ${schools.map(s=>`<option value="${s.id}" ${u.schoolId===s.id?'selected':''}>${s.name}</option>`).join('')}
+    </select></div>
+    <div class="form-group"><label>Perfil</label><select id="m-urole">
+      <option value="usuario" ${u.role==='usuario'?'selected':''}>Usuário</option>
+      <option value="admin" ${u.role==='admin'?'selected':''}>Administrador</option>
+    </select></div>
+  </div>`:`
+  <div class="form-group"><label>Perfil</label><select id="m-urole">
+    <option value="usuario" ${u.role==='usuario'?'selected':''}>Usuário</option>
+    <option value="admin" ${u.role==='admin'?'selected':''}>Administrador</option>
+  </select></div>`}
+  <div class="form-group"><label>Status</label><select id="m-ustatus">
+    <option value="pendente" ${u.status==='pendente'?'selected':''}>Pendente</option>
+    <option value="aprovado" ${u.status==='aprovado'?'selected':''}>Aprovado</option>
+    <option value="rejeitado" ${u.status==='rejeitado'?'selected':''}>Rejeitado</option>
+  </select></div>
+  <div class="modal-acts">
+    <button class="btn-sec" onclick="closeModal()">Cancelar</button>
+    <button class="btn-prim" onclick="saveEditUser('${id}')">💾 Salvar</button>
+  </div>`);
+}
+
+function saveEditUser(id){
+  const users=getUsers(); const idx=users.findIndex(u=>u.id===id);
+  if(idx<0) return;
+  users[idx].name=document.getElementById('m-uname').value.trim()||users[idx].name;
+  users[idx].email=document.getElementById('m-uemail').value.trim();
+  const np=document.getElementById('m-upass').value;
+  if(np) users[idx].password=np;
+  users[idx].role=document.getElementById('m-urole').value;
+  users[idx].status=document.getElementById('m-ustatus').value;
+  const schEl=document.getElementById('m-uschool');
+  if(schEl) users[idx].schoolId=schEl.value||null;
+  saveUsers(users); closeModal(); toast('✅ Usuário atualizado!');
+  renderPage('usuarios',document.getElementById('page-usuarios'));
+  updateNotifDot();
+}
+
+// ═══════════════════════════════════════════════════════
+// OCORRENCIAS (admin / master view)
+// ═══════════════════════════════════════════════════════
+let occFilter={q:''};
+
+function renderOcorrencias(el){
+  const r=SESSION.role;
+  const allOccs=getOccs();
+  const occs=(r==='master'?allOccs:allOccs.filter(o=>o.schoolId===SESSION.schoolId))
+    .sort((a,b)=>b.createdAt.ts-a.createdAt.ts);
+
+  const schools=getSchools();
+  const users=getUsers();
+
+  let filtered=occs;
+  if(occFilter.q) filtered=filtered.filter(o=>
+    o.studentName.toLowerCase().includes(occFilter.q)||
+    o.description.toLowerCase().includes(occFilter.q)||
+    o.turma.toLowerCase().includes(occFilter.q)
+  );
+
+  const items=filtered.length?filtered.map(o=>{
+    const sc=schools.find(s=>s.id===o.schoolId);
+    const author=users.find(u=>u.id===o.authorId);
+    const isNew=!o.seen&&SESSION.role!=='usuario';
+    return `<div class="occ-item" onclick="showOccDetail('${o.id}');markSeen('${o.id}')">
+      <div class="occ-av">📄</div>
+      <div class="occ-info">
+        <div class="occ-meta">📅 ${o.createdAt.date} às ${o.createdAt.time} ${r==='master'&&sc?`• 🏫 ${sc.name}`:''}</div>
+        <div class="occ-name">${o.studentName} — <span style="color:var(--gb)">${o.turma}</span></div>
+        <div class="occ-desc">${o.description}</div>
+        <div style="font-size:11px;color:var(--txs);margin-top:3px">Registrado por: ${author?author.name:'—'}</div>
+      </div>
+      ${isNew?`<span class="occ-new-badge">NOVA</span>`:''}
+    </div>`;}).join('')
+  :`<div class="empty"><div class="ei">📋</div><p>Nenhuma ocorrência encontrada.</p></div>`;
+
+  el.innerHTML=`
+  <div class="ph"><h2>Ocorrências</h2>
+    <div class="ph-acts">
+      <button class="btn-prim" onclick="openNewOcc()">➕ Registrar ocorrência</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:16px">
+      <div class="search-bar"><span>🔍</span>
+        <input type="text" placeholder="Buscar por aluno, turma ou descrição..." oninput="setOccQ(this.value)" value="${occFilter.q}">
+      </div>
+    </div>
+    <div class="occ-list">${items}</div>
+  </div>`;
+}
+
+function setOccQ(q){ occFilter.q=q.toLowerCase(); renderPage('ocorrencias',document.getElementById('page-ocorrencias')); }
+
+function markSeen(id){
+  const occs=getOccs(); const idx=occs.findIndex(o=>o.id===id);
+  if(idx>=0){ occs[idx].seen=true; saveOccs(occs); updateNotifDot(); }
+}
+
+function openNewOcc(){
+  const r=SESSION.role;
+  const schools=getSchools();
+  const schoolSel=r==='master'?`
+  <div class="form-group"><label>Escola</label><select id="m-oschool">
+    <option value="">— selecione —</option>
+    ${schools.map(s=>`<option value="${s.id}">${s.name}</option>`).join('')}
+  </select></div>`:'';
+  showModal(`<h3>📋 Nova ocorrência</h3><p class="modal-sub">Preencha os dados da ocorrência</p>
+  ${schoolSel}
+  <div class="form-row">
+    <div class="form-group"><label>Nome do aluno</label><input id="m-ostudent" placeholder="Ex: João Silva"></div>
+    <div class="form-group"><label>Turma</label><input id="m-oturma" placeholder="Ex: 8º Ano A"></div>
+  </div>
+  <div class="form-group"><label>Descrição da ocorrência</label>
+    <textarea id="m-odesc" placeholder="Descreva o que ocorreu..."></textarea>
+  </div>
+  <div class="modal-acts">
+    <button class="btn-sec" onclick="closeModal()">Cancelar</button>
+    <button class="btn-prim" onclick="saveNewOcc()">📋 Registrar</button>
+  </div>`);
+}
+
+function saveNewOcc(){
+  const student=document.getElementById('m-ostudent').value.trim();
+  const turma=document.getElementById('m-oturma').value.trim();
+  const desc=document.getElementById('m-odesc').value.trim();
+  const schEl=document.getElementById('m-oschool');
+  const schoolId=schEl?schEl.value||null:SESSION.schoolId;
+  if(!student||!turma||!desc){ toast('⚠️ Preencha todos os campos.','warning'); return; }
+  const occs=getOccs();
+  occs.push({id:uid(),studentName:student,turma,description:desc,schoolId,
+    authorId:SESSION.id,seen:SESSION.role!=='usuario',createdAt:now()});
+  saveOccs(occs);
+  closeModal(); toast('✅ Ocorrência registrada!');
+  const pg=document.getElementById('page-ocorrencias');
+  if(pg&&!pg.classList.contains('hidden')) renderPage('ocorrencias',pg);
+  updateNotifDot();
+}
+
+function showOccDetail(id){
+  const o=getOccs().find(x=>x.id===id);
+  if(!o) return;
+  const sc=getSchools().find(s=>s.id===o.schoolId);
+  const author=getUsers().find(u=>u.id===o.authorId);
+  document.getElementById('dp-content').innerHTML=`
+    <div class="dp-row"><div class="dp-label">Data</div><div class="dp-val">${o.createdAt.date}</div></div>
+    <div class="dp-row"><div class="dp-label">Horário</div><div class="dp-val">${o.createdAt.time}</div></div>
+    <div class="dp-divider"></div>
+    <div class="dp-row"><div class="dp-label">Aluno</div><div class="dp-val">${o.studentName}</div></div>
+    <div class="dp-row"><div class="dp-label">Turma</div><div class="dp-val">${o.turma}</div></div>
+    <div class="dp-divider"></div>
+    <div class="dp-row"><div class="dp-label">Descrição</div><div class="dp-val" style="white-space:pre-wrap">${o.description}</div></div>
+    <div class="dp-divider"></div>
+    ${sc?`<div class="dp-row"><div class="dp-label">Escola</div><div class="dp-val">${sc.name}</div></div>`:''}
+    <div class="dp-row"><div class="dp-label">Registrado por</div><div class="dp-val">${author?author.name:'—'}</div></div>
+  `;
+  document.getElementById('detail-panel').classList.add('open');
+}
+
+// ═══════════════════════════════════════════════════════
+// NOVA OCORRENCIA (usuario comum)
+// ═══════════════════════════════════════════════════════
+function renderNovaOcc(el){
+  const sc=getSchools().find(s=>s.id===SESSION.schoolId);
+  const schoolInfo=sc?`<div class="info-banner">🏫 Você está registrando uma ocorrência para a escola <strong>${sc.name}</strong>.</div>`
+    :`<div class="info-banner" style="background:#fef3c7;border-color:#fcd34d;color:#92400e">⚠️ Sua conta ainda não foi vinculada a uma escola. Contate o administrador.</div>`;
+
+  el.innerHTML=`
+  <div class="ph"><h2>Registrar Ocorrência</h2></div>
+  ${schoolInfo}
+  <div class="form-section" style="max-width:560px">
+    <h3>📋 Nova ocorrência</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Nome do aluno *</label><input id="f-student" placeholder="Ex: João Silva"></div>
+      <div class="form-group"><label>Turma *</label><input id="f-turma" placeholder="Ex: 8º Ano A"></div>
+    </div>
+    <div class="form-group"><label>Descrição da ocorrência *</label>
+      <textarea id="f-desc" style="min-height:120px" placeholder="Descreva com detalhes o que aconteceu..."></textarea>
+    </div>
+    <div style="background:var(--gp);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:16px;font-size:13px;color:var(--txm)">
+      📅 A data e horário serão registrados automaticamente: <strong id="f-now-time"></strong>
+    </div>
+    <button class="btn-prim" onclick="submitUserOcc()" ${!SESSION.schoolId?'disabled style="opacity:.5;cursor:not-allowed"':''}>📋 Registrar ocorrência</button>
+  </div>`;
+
+  function tick(){ const n=now(); const el=document.getElementById('f-now-time'); if(el) el.textContent=n.date+' às '+n.time; }
+  tick(); setInterval(tick,10000);
+}
+
+function submitUserOcc(){
+  if(!SESSION.schoolId){ toast('⚠️ Sem escola vinculada.','warning'); return; }
+  const student=document.getElementById('f-student').value.trim();
+  const turma=document.getElementById('f-turma').value.trim();
+  const desc=document.getElementById('f-desc').value.trim();
+  if(!student||!turma||!desc){ toast('⚠️ Preencha todos os campos obrigatórios.','warning'); return; }
+  const occs=getOccs();
+  occs.push({id:uid(),studentName:student,turma,description:desc,
+    schoolId:SESSION.schoolId,authorId:SESSION.id,seen:false,createdAt:now()});
+  saveOccs(occs);
+  toast('✅ Ocorrência registrada com sucesso!');
+  document.getElementById('f-student').value='';
+  document.getElementById('f-turma').value='';
+  document.getElementById('f-desc').value='';
+  updateNotifDot();
+}
+
+// ═══════════════════════════════════════════════════════
+// MINHAS OCORRENCIAS (usuario comum)
+// ═══════════════════════════════════════════════════════
+function renderMinhasOccs(el){
+  const occs=getOccs().filter(o=>o.authorId===SESSION.id).sort((a,b)=>b.createdAt.ts-a.createdAt.ts);
+  const items=occs.length?occs.map(o=>`
+    <div class="occ-item" onclick="showOccDetail('${o.id}')">
+      <div class="occ-av">📄</div>
+      <div class="occ-info">
+        <div class="occ-meta">📅 ${o.createdAt.date} às ${o.createdAt.time}</div>
+        <div class="occ-name">${o.studentName} — <span style="color:var(--gb)">${o.turma}</span></div>
+        <div class="occ-desc">${o.description}</div>
+      </div>
+    </div>`).join('')
+  :`<div class="empty"><div class="ei">📄</div><p>Você ainda não registrou nenhuma ocorrência.</p></div>`;
+
+  el.innerHTML=`
+  <div class="ph"><h2>Minhas Ocorrências</h2>
+    <button class="btn-prim" onclick="goTo('nova-ocorrencia')">➕ Nova ocorrência</button>
+  </div>
+  <div class="card"><div class="occ-list">${items}</div></div>`;
+}
+
+// ═══════════════════════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════════════════════
+function renderConfig(el){
+  const u=SESSION;
+  el.innerHTML=`
+  <div class="ph"><h2>Configurações</h2></div>
+  <div class="form-section">
+    <h3>👤 Meu perfil</h3>
+    <div class="form-row">
+      <div class="form-group"><label>Nome completo</label><input id="cfg-name" value="${u.name}"></div>
+      <div class="form-group"><label>Usuário</label><input value="@${u.username}" readonly style="opacity:.6"></div>
+    </div>
+    <div class="form-group"><label>E-mail</label><input id="cfg-email" value="${u.email||''}"></div>
+    <div class="form-group"><label>Nova senha (deixe em branco para manter)</label>
+      <input id="cfg-pass" type="password" placeholder="Nova senha"></div>
+    <button class="btn-prim" onclick="saveConfig()">💾 Salvar alterações</button>
+  </div>`;
+}
+
+function saveConfig(){
+  const users=getUsers(); const idx=users.findIndex(u=>u.id===SESSION.id);
+  if(idx<0) return;
+  users[idx].name=document.getElementById('cfg-name').value.trim()||users[idx].name;
+  users[idx].email=document.getElementById('cfg-email').value.trim();
+  const np=document.getElementById('cfg-pass').value;
+  if(np) users[idx].password=np;
+  saveUsers(users);
+  SESSION=users[idx];
+  document.getElementById('tb-name').textContent=SESSION.name;
+  toast('✅ Perfil atualizado!');
+}
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+function showModal(html){
+  document.getElementById('modal-box').innerHTML=html;
+  document.getElementById('modal-overlay').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal-overlay').classList.remove('open'); }
+function handleOverlayClick(e){ if(e.target===document.getElementById('modal-overlay')) closeModal(); }
+function closeDetail(){ document.getElementById('detail-panel').classList.remove('open'); }
+
+function toast(msg, type='success'){
+  const wrap=document.getElementById('toast-wrap');
+  const t=document.createElement('div');
+  t.className='toast'+(type==='error'?' error':type==='warning'?' warning':'');
+  t.textContent=msg;
+  wrap.appendChild(t);
+  setTimeout(()=>t.remove(),3500);
+}
+
+function cap(s){ return s?s.charAt(0).toUpperCase()+s.slice(1):s; }
+
+function updateNotifDot(){
+  if(!SESSION) return;
+  const r=SESSION.role;
+  if(r==='usuario') return;
+  const occs=getOccs().filter(o=>{
+    if(r!=='master') return o.schoolId===SESSION.schoolId&&!o.seen;
+    return !o.seen;
+  });
+  const pending=getUsers().filter(u=>{
+    if(r==='master') return u.status==='pendente';
+    return u.schoolId===SESSION.schoolId&&u.status==='pendente';
+  });
+  const dot=document.getElementById('notif-dot');
+  if(dot) dot.style.display=(occs.length||pending.length)?'block':'none';
+}
+
+// KEY LISTENER
+document.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){
+    if(document.getElementById('login-screen').style.display!=='none') doLogin();
+    else if(document.getElementById('register-screen').style.display==='flex') doRegister();
+  }
+  if(e.key==='Escape'){ closeModal(); closeDetail(); }
+});
+
+// BOOT
+initDB();
+</script>
+</body>
+</html>
